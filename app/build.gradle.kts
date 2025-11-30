@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "1.9.23"
 }
 
 android {
@@ -42,10 +43,12 @@ android {
 dependencies {
 
 
-    // Supabase Kotlin SDK
-    implementation("io.github.jan-tennert.supabase:supabase-kt:1.0.0-beta.6")
-    implementation("io.github.jan-tennert.supabase:supabase-kt-auth:1.0.0-beta.6")
-    implementation("io.github.jan-tennert.supabase:supabase-kt-storage:1.0.0-beta.6")
+    // En build.gradle.kts
+    implementation("io.ktor:ktor-client-core:2.3.10")
+    implementation("io.ktor:ktor-client-android:2.3.10")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.10")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.10")
+    implementation("io.ktor:ktor-client-logging:2.3.10")
 
     // Para manejo de JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
@@ -68,10 +71,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-
-
-
-
 
 }
