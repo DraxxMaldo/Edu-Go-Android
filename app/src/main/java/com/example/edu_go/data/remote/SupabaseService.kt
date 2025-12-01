@@ -2,19 +2,23 @@ package com.example.edu_go.data.remote
 
 import android.util.Log
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse // Importante para el fix
-import io.ktor.client.statement.bodyAsText // Importante para el fix
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
-import io.ktor.http.isSuccess // Importante para el fix
+import io.ktor.http.headers
+import io.ktor.http.isSuccess
+import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -57,7 +61,6 @@ class SupabaseService {
                 role = "estudiante"
             )
 
-            // Usamos bodyAsText aquí también por seguridad, aunque tu lógica original funcionaba
             val response: HttpResponse = client.post("$supabaseUrl/auth/v1/signup") {
                 contentType(ContentType.Application.Json)
                 headers.append(HttpHeaders.Authorization, "Bearer $supabaseAnonKey")
@@ -118,12 +121,11 @@ class SupabaseService {
         }
     }
 
-    // 3. INICIAR SESIÓN (CORREGIDO)
-    suspend fun signIn(email: String, password: String): Result<String> {
+    // 3. INICIAR SESIÓN (CORREGIDO - ahora devuelve userId y token)
+    suspend fun signIn(email: String, password: String): Result<LoginResult> {
         return try {
             Log.d("SupabaseService", "--- INICIO LOGIN ---")
 
-            // Petición HTTP cruda
             val response: HttpResponse = client.post("$supabaseUrl/auth/v1/token?grant_type=password") {
                 contentType(ContentType.Application.Json)
                 headers.append(HttpHeaders.Authorization, "Bearer $supabaseAnonKey")
@@ -141,11 +143,13 @@ class SupabaseService {
                 val json = Json { ignoreUnknownKeys = true }
                 val signInResponse = json.decodeFromString<SignInResponse>(responseBody)
                 val userId = signInResponse.user?.id
+                val token = signInResponse.access_token
 
-                if (userId != null) {
-                    Result.success(userId)
+                if (userId != null && token != null) {
+                    Log.d("SupabaseService", "Login exitoso para ID: $userId")
+                    Result.success(LoginResult(userId = userId, token = token))
                 } else {
-                    Result.failure(Exception("ID nulo en respuesta exitosa"))
+                    Result.failure(Exception("ID o token nulos en respuesta exitosa"))
                 }
             } else {
                 Log.e("SupabaseService", "Fallo Login: $responseBody")
@@ -211,4 +215,53 @@ class SupabaseService {
         val access_token: String? = null
     )
 
+    // --------------------------------------------------------
+    // D. MODELOS PARA RESULTADO DE LOGIN
+    // --------------------------------------------------------
+    @Serializable
+    data class LoginResult(
+        val userId: String,
+        val token: String
+    )
+
+    // --------------------------------------------------------
+    // E. OBTENER DATOS DEL USUARIO
+    // --------------------------------------------------------
+    suspend fun getUserProfile(userId: String, token: String): Result<UserProfile> {
+        return try {
+            Log.d("SupabaseService", "Obteniendo perfil para ID: $userId")
+
+            val response: List<UserProfile> = client.get("$supabaseUrl/rest/v1/profiles") {
+                // 👇 ESTA ES LA CLAVE QUE FALTABA:
+                // Igual que en Angular el cliente manda el token, aquí lo ponemos manual
+                headers.append(HttpHeaders.Authorization, "Bearer $token")
+                headers.append("apikey", supabaseAnonKey)
+
+                url {
+                    parameters.append("id", "eq.$userId")
+                }
+            }.body()
+
+            if (response.isNotEmpty()) {
+                Result.success(response[0])
+            } else {
+                Result.failure(Exception("Perfil no encontrado"))
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseService", "Error: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    @Serializable
+    data class UserProfile(
+        val id: String,
+        val email: String,
+        val nombre: String,
+        val apellido: String,
+        val plan: String,
+        val role: String,
+        val foto_url: String? = null,
+        val descripcion: String? = null
+    )
 }
