@@ -7,25 +7,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class RegisterViewModel : ViewModel() {
+class LoginViewModel : ViewModel() {
     private val supabaseService = SupabaseService()
 
-    private val _uiState = MutableStateFlow(RegisterUiState())
-    val uiState: StateFlow<RegisterUiState> = _uiState
+    private val _uiState = MutableStateFlow(LoginUiState())
+    val uiState: StateFlow<LoginUiState> = _uiState
 
-    fun register(name: String, lastName: String, email: String, password: String) {
+    fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val signUpResult = supabaseService.signUp(
-                email = email,
-                password = password,
-                nombre = name,
-                lastName = lastName,
+            val loginResult = supabaseService.signIn(email, password)
 
-            )
-
-            if (signUpResult.isSuccess) {
+            if (loginResult.isSuccess) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     success = true,
@@ -34,14 +28,14 @@ class RegisterViewModel : ViewModel() {
             } else {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = signUpResult.exceptionOrNull()?.message ?: "Error al registrar"
+                    error = loginResult.exceptionOrNull()?.message ?: "Error al iniciar sesión"
                 )
             }
         }
     }
 }
 
-data class RegisterUiState(
+data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false
