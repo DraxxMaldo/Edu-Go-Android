@@ -24,14 +24,14 @@ fun EduGoBottomNavigation(
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Definición de colores para que sea fácil de ajustar
-    val rosadoFondo = Color(0xFFFF6B8E)       // Tu color principal
-    val rosadoSeleccion = Color(0xFFD65A76)   // Un tono un poco más oscuro para la "píldora" seleccionada
+    val rosadoFondo = Color(0xFFFF6B8E)
+    val rosadoSeleccion = Color(0xFFD65A76)
     val textoBlanco = Color.White
-    val textoInactivo = Color.White.copy(alpha = 0.6f) // Blanco semitransparente (se ve mejor que gris)
+    val textoInactivo = Color.White.copy(alpha = 0.6f)
 
     NavigationBar(
         modifier = Modifier
-            .fillMaxWidth(), // 👈 ¡IMPORTANTE: Sin height fijo!
+            .fillMaxWidth(),
         containerColor = rosadoFondo,
         contentColor = textoBlanco,
         tonalElevation = 0.dp
@@ -50,7 +50,7 @@ fun EduGoBottomNavigation(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = textoBlanco,
                 selectedTextColor = textoBlanco,
-                indicatorColor = rosadoSeleccion, // 👈 La "burbuja" detrás del icono seleccionado
+                indicatorColor = rosadoSeleccion,
                 unselectedIconColor = textoInactivo,
                 unselectedTextColor = textoInactivo
             )

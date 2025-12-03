@@ -1,15 +1,20 @@
 package com.example.edu_go.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.edu_go.data.UserSession
+import com.example.edu_go.data.UserStore
 import com.example.edu_go.data.remote.SupabaseService
-import com.example.edu_go.data.UserSession // 👈 Importante: Importar esto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class LoginViewModel : ViewModel() {
+
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
+
     private val supabaseService = SupabaseService()
+    private val userStore = UserStore(application.applicationContext)
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
@@ -18,19 +23,19 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Llamamos al servicio
             val result = supabaseService.signIn(email, pass)
 
             if (result.isSuccess) {
-                // Obtenemos los datos que nos devolvió el servicio (ID y Token)
                 val loginData = result.getOrNull()
 
                 if (loginData != null) {
-                    // 👇 AQUÍ ES DONDE GUARDAMOS EL TOKEN (El paso clave)
+                    // 1. Guardar en RAM (UserSession)
                     UserSession.token = loginData.token
                     UserSession.userId = loginData.userId
 
-                    // Ahora sí, avisamos a la vista que todo salió bien
+                    // 2. Guardar en DISCO (DataStore) para persistencia 💾
+                    userStore.saveUser(loginData.token, loginData.userId)
+
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         success = true,
